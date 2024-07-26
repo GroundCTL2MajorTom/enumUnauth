@@ -1,0 +1,59 @@
+#!/bin/sh
+
+is_input=false
+# 循环等待用户输入
+while [ "$is_input" = false ]; do
+  # 接收用户输入
+  read -p "pls input ip:  " ip
+  # 判断输入是否为空
+  if [ -z "$ip" ]; then
+    echo "invalid input!"
+  else
+    is_input=true
+  fi
+done
+echo $ip
+echo "finding url..."
+find ./ -type f -exec echo {} \;|grep -vE 'gif|css|js|ico|png|jpg|jpeg'|sed "s#^\.#${ip}#" > ./whatweb_url_list.txt
+cat ./whatweb_url_list.txt
+echo ""
+echo ""
+echo "start whatweb..."
+whatweb -i ./whatweb_url_list.txt --colour=never --url-prefix="http://" --no-errors > ./whatweb_raw.txt
+#whatweb -i ./whatweb_url_list.txts --colour=never --url-prefix="https://"
+cat ./whatweb_raw.txt |grep -E "200 OK|302 Found"|awk '{print($1)}' > ./whatweb_200_302_list.txt
+cat ./whatweb_raw.txt |grep "403 Forbidden" |awk '{print($1)}' > ./whatweb_403_list.txt
+cat ./whatweb_raw.txt |grep -vE "401 Unauthorized"|awk '{print($1)}' > ./whatweb_except400_list.txt
+cat ./whatweb_raw.txt|grep -vE "404|401|Unassigned"
+echo ""
+echo ""
+echo "return 200 web list:"
+echo ""
+cat ./whatweb_200_302_list.txt
+echo ""
+echo "start Allin"
+echo ""
+AlliN -f ./whatweb_200_302_list.txt -o ./allin_all.txt
+echo ""
+echo ""
+echo "allin 200 list:"
+cat ./allin_all.txt|grep 200|awk '{print($2)}'
+
+is_input2=false
+#循环等待用户输入
+while [ "$is_input2" = false ]; do
+# 接收用户输入
+  read -p "save file?(y/n)" bool
+  # 判断输入是否为空
+  if [ -z "$bool" ]; then
+    echo "invalid input!"
+  else
+    is_input2=true
+  fi
+done
+if [ "$bool" = "n" ]; then
+  rm -rf ./whatweb*
+  rm -rf ./allin_*
+else
+  exit
+fi
